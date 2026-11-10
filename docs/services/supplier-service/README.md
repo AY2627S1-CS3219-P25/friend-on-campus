@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-09
+Scope: Updated supplierRepository.ts responsibility from in-memory sorting/pagination to PostgreSQL sorting and pagination (#110, #253).
+Author review: <to be completed by yanhwee>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
 Scope: PR #222 review: seed description notes that recorded coordinates survive a reseed.
 Author review: <to be completed by Reallyeasy1>
@@ -25,7 +29,7 @@ Supplier Service owns the campus pickup directory in `supplier_db`. Reads are pu
 | src/app.ts | Express middleware, public probes, supplier router |
 | src/suppliers/supplierRoutes.ts | HTTP extraction, authentication/RBAC on mutations, status/error mapping |
 | supplierService.ts | Required fields, effective update values, duplicate precheck |
-| supplierRepository.ts | Prisma CRUD/filtering and in-memory sorting/pagination |
+| supplierRepository.ts | Prisma CRUD/filtering and PostgreSQL case-insensitive sorting/pagination |
 | src/database/seed.ts | CSV validation and upsert of directory records |
 
 `PORT`/`SUPPLIER_SERVICE_PORT` defaults to 8002; DATABASE_URL precedes SUPPLIER_DATABASE_URL. JWT_PUBLIC_KEY and issuer/audience configure mutation verification. Although CORS_ORIGIN is loaded in config, `app.use(cors())` does not apply that value; record actual behavior rather than claiming an origin allowlist.

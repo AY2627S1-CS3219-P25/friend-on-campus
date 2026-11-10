@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-09
+Scope: Updated read path and test notes to reflect PostgreSQL sorting/pagination and the coordinates.migration.ts PostgreSQL sorting/pagination test (#110, #253).
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -9,7 +13,7 @@ Author review: <to be completed by Reallyeasy1>
 
 Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
 
-For reads, route query extraction feeds repository filtering, JavaScript sorting and optional slicing. There is no requirement for a token on current collection/detail GET routes. The frontend may still gate its screens behind login; that is a different layer.
+For reads, route query extraction feeds repository filtering, PostgreSQL case-insensitive sorting (`LOWER()`) with `id` tie-breaking, and SQL `LIMIT`/`OFFSET` pagination. There is no requirement for a token on current collection/detail GET routes. The frontend may still gate its screens behind login; that is a different layer.
 
 ```mermaid
 %% AI-generated (edited by Reallyeasy1)

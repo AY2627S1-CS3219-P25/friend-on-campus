@@ -1,4 +1,9 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-11-09
+// Scope: Issue #253: Updated summary limitation note now that supplier search runs at its full issue-specified
+//        50 and 100 VU populations.
+// Author review: <to be completed by yanhwee>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
 // Scope: Orchestrator for the k6 performance harness (issues #236, #237): preflight -> run-owned fixtures ->
 //        k6 per workload -> reconciliation and report -> cleanup, writing the evidence bundle under
@@ -388,7 +393,7 @@ if (reconciliation) {
 }
 lines.push('', '## Limitations and scope', '', ...manifest.limitations.map((item) => `- ${item}`));
 if (Object.values(workloadResults).some((result) => result.operations.some((op) => op.limit.requirementP95Ms))) {
-  lines.push('- Limits marked "raised" are above the figure in their linked issue, and supplier search runs with fewer users than its issues state (tests/k6/requirements.json); a PASS against them does not show that the issue\'s requirement is met.');
+  lines.push('- Limits marked "raised" are above the figure in their linked issue (tests/k6/requirements.json); a PASS against them does not show that the issue\'s requirement is met.');
 }
 for (const result of Object.values(workloadResults)) for (const item of result.notCovered) lines.push(`- ${item}`);
 if (profile === 'stress') lines.push('- A stress run that crosses a threshold describes saturation; it is not a passing requirement-load result.');

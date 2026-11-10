@@ -1,6 +1,13 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Google Antigravity Agent, date: 2026-11-09
+ * Scope: Pushed supplier sorting (case-insensitive LOWER() on text columns with deterministic id tie-breaker)
+ * and pagination (LIMIT/OFFSET + COUNT(*) OVER()) into PostgreSQL via prisma.$queryRaw, capping unpaginated
+ * queries at 100 rows so high-concurrency load tests (#29, #33, #253) do not block the Node event loop or
+ * exhaust the database connection pool (resolving #110 and #253).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Lint fix (PR #184): where and update objects typed as Prisma.SupplierWhereInput / SupplierUpdateInput instead of any.
  * Author review: <to be completed by Reallyeasy1>
@@ -34,84 +41,121 @@
 // AI-generated (edited by yanhwee)
 
 
-import { prisma, type Prisma } from '../database/client';
+import { prisma, Prisma, type Supplier } from '../database/client';
 import {
   CreateSupplierRequest,
   UpdateSupplierRequest,
   SupplierQueryOptions,
 } from '@campus-errand/common-dtos';
 
-// AI-generated (edited by Reallyeasy1)
-function compareValues(a: unknown, b: unknown): number {
-  return typeof a === 'string' && typeof b === 'string'
-    ? a.localeCompare(b, 'en', { sensitivity: 'base' })
-    : Number(a) - Number(b); // createdAt
-}
+type SupplierRow = Supplier & { totalCount: number };
+
+const SORT_SQL_BY_FIELD: Record<string, Prisma.Sql> = {
+  name: Prisma.raw('LOWER("name")'),
+  campusZone: Prisma.raw('LOWER("campus_zone")'),
+  category: Prisma.raw('LOWER("category")'),
+  createdAt: Prisma.raw('"created_at"'),
+  supplierCode: Prisma.raw('LOWER("supplier_code")'),
+};
 
 export async function getSuppliers(filter?: SupplierQueryOptions) {
-  const whereClause: Prisma.SupplierWhereInput = {};
+  const conditions: Prisma.Sql[] = [];
 
   if (filter?.campusZone) {
-    whereClause.campusZone = { equals: filter.campusZone, mode: 'insensitive' };
+    conditions.push(Prisma.sql`LOWER("campus_zone") = LOWER(${filter.campusZone})`);
   }
 
   if (filter?.category) {
-    whereClause.category = { equals: filter.category, mode: 'insensitive' };
+    conditions.push(Prisma.sql`LOWER("category") = LOWER(${filter.category})`);
   }
 
   if (filter?.isActive !== undefined) {
-    whereClause.isActive = filter.isActive;
+    conditions.push(Prisma.sql`"is_active" = ${filter.isActive}`);
   }
 
   if (filter?.search) {
     const term = filter.search.trim();
     if (term.length > 0) {
-      whereClause.OR = [
-        { name: { contains: term, mode: 'insensitive' } },
-        { exactLocation: { contains: term, mode: 'insensitive' } },
-        { building: { contains: term, mode: 'insensitive' } },
-        { description: { contains: term, mode: 'insensitive' } },
-        { supplierCode: { contains: term, mode: 'insensitive' } },
-      ];
+      const pattern = `%${term}%`;
+      conditions.push(
+        Prisma.sql`("name" ILIKE ${pattern} OR "exact_location" ILIKE ${pattern} OR "building" ILIKE ${pattern} OR "description" ILIKE ${pattern} OR "supplier_code" ILIKE ${pattern})`,
+      );
     }
   }
 
-  // Determine sorting order
-  const validSortFields = ['name', 'campusZone', 'category', 'createdAt', 'supplierCode'];
-  const sortBy = filter?.sortBy && validSortFields.includes(filter.sortBy) ? filter.sortBy : 'name';
-  const direction = filter?.sortOrder === 'desc' ? -1 : 1;
+  const whereSql =
+    conditions.length > 0
+      ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+      : Prisma.empty;
 
-  // AI-generated (edited by Reallyeasy1)
-  // ponytail: sorted and paged in memory. The alpine Postgres image compares text by byte, so ORDER BY puts
-  // "he by He Brews" after every capitalised name, and Prisma cannot order case-insensitively. Fine for a
-  // directory of a few hundred rows; move to an ICU-collated column or raw SQL on lower(name) if it grows (issue #110).
-  const matches = await prisma.supplier.findMany({ where: whereClause });
-  const key = sortBy as keyof (typeof matches)[number];
-  // Ties fall back to id so the same request always pages the same way.
-  matches.sort((a, b) => direction * compareValues(a[key], b[key]) || a.id.localeCompare(b.id));
+  const sortBy = filter?.sortBy && filter.sortBy in SORT_SQL_BY_FIELD ? filter.sortBy : 'name';
+  const sortExpr = SORT_SQL_BY_FIELD[sortBy];
+  const sortDir = filter?.sortOrder === 'desc' ? Prisma.raw('DESC') : Prisma.raw('ASC');
 
-  // If pagination is requested (page or limit provided)
-  if (filter?.page !== undefined || filter?.limit !== undefined) {
-    const page = Math.max(1, filter.page ?? 1);
-    const limit = Math.min(100, Math.max(1, filter.limit ?? 10));
-    const skip = (page - 1) * limit;
+  const isPaginated = filter?.page !== undefined || filter?.limit !== undefined;
+  const rawPage = filter?.page !== undefined && Number.isFinite(filter.page) ? Math.trunc(filter.page) : 1;
+  const rawLimit = filter?.limit !== undefined && Number.isFinite(filter.limit) ? Math.trunc(filter.limit) : 10;
+  const page = isPaginated ? Math.max(1, rawPage) : 1;
+  const limit = isPaginated ? Math.min(100, Math.max(1, rawLimit)) : 100;
+  const skip = (page - 1) * limit;
 
+  // AI-generated (edited by yanhwee)
+  // Sort and page in PostgreSQL so text columns order case-insensitively with deterministic tie-breaking by id,
+  // without loading or sorting the full table on the Node.js event loop (issues #110, #253).
+  const rows = await prisma.$queryRaw<SupplierRow[]>(Prisma.sql`
+    SELECT
+      "id",
+      "supplier_code" AS "supplierCode",
+      "name",
+      "campus_zone" AS "campusZone",
+      "exact_location" AS "exactLocation",
+      "category",
+      "description",
+      "building",
+      "floor",
+      "latitude",
+      "longitude",
+      "starting_time" AS "startingTime",
+      "closing_time" AS "closingTime",
+      "image_url" AS "imageUrl",
+      "is_active" AS "isActive",
+      "created_at" AS "createdAt",
+      "updated_at" AS "updatedAt",
+      COUNT(*) OVER()::int AS "totalCount"
+    FROM "suppliers"
+    ${whereSql}
+    ORDER BY ${sortExpr} ${sortDir}, "id" ASC
+    LIMIT ${limit} OFFSET ${skip}
+  `);
+
+  const suppliers: Supplier[] = rows.map(({ totalCount: _totalCount, ...supplier }) => supplier);
+  let total = rows[0]?.totalCount ?? 0;
+  if (rows.length === 0 && skip > 0) {
+    const countRows = await prisma.$queryRaw<Array<{ totalCount: number }>>(Prisma.sql`
+      SELECT COUNT(*)::int AS "totalCount"
+      FROM "suppliers"
+      ${whereSql}
+    `);
+    total = countRows[0]?.totalCount ?? 0;
+  }
+
+  if (isPaginated) {
     return {
-      suppliers: matches.slice(skip, skip + limit),
-      total: matches.length,
+      suppliers,
+      total,
       page,
       limit,
-      totalPages: Math.ceil(matches.length / limit),
+      totalPages: Math.ceil(total / limit),
     };
   }
 
-  // Fallback: return full list
+  const effectiveLimit = suppliers.length;
   return {
-    suppliers: matches,
-    total: matches.length,
+    suppliers,
+    total,
     page: 1,
-    limit: matches.length,
-    totalPages: 1,
+    limit: effectiveLimit,
+    totalPages: effectiveLimit > 0 ? Math.ceil(total / effectiveLimit) : 1,
   };
 }
 

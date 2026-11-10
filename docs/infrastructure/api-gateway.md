@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-09
+Scope: Issue #253: Documented upstream blocks with `resolve` (10 s Docker DNS TTL) and HTTP/1.1 `keepalive` connection pooling in gateway/nginx.conf.
+Author review: <to be completed by yanhwee>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
 Scope: Issues #173/#169/#206: upstreams resolved per request through Docker DNS (variables, 10 s TTL), 3 s connect timeout, Chat health routes; diagnostics paragraph updated accordingly.
 Author review: <to be completed by Reallyeasy1>
@@ -43,7 +47,7 @@ Host Vite configs default to individual backend services; `GATEWAY_URL` can rout
 
 ## Failure diagnostics
 
-Compare service `/ready` directly with gateway probes when diagnosing 502. Upstream names are held in variables and resolved through Docker's embedded DNS (`resolver 127.0.0.11 valid=10s`), so a replaced container's address is picked up within the TTL without a gateway restart (issue #173; the earlier static `upstream` blocks cached the address for the life of the process). `proxy_connect_timeout` is 3 s, so a stopped backend yields 502 quickly instead of after the 60 s default (issue #169); the two SPAs bound their mount-time refresh call to 8 s for the same reason. A process health response does not establish database or consumer readiness.
+Compare service `/ready` directly with gateway probes when diagnosing 502. Upstreams are defined in shared-memory `upstream` blocks with `server ... resolve` (resolved through Docker's embedded DNS `resolver 127.0.0.11 valid=10s`) and HTTP/1.1 `keepalive` connection pools, so a replaced container's address is picked up within the TTL without a gateway restart (issue #173) while high-throughput requests reuse upstream TCP connections instead of exhausting ephemeral ports in `TIME_WAIT` (issue #253). `proxy_connect_timeout` is 3 s, so a stopped backend yields 502 quickly instead of after the 60 s default (issue #169); the two SPAs bound their mount-time refresh call to 8 s for the same reason. A process health response does not establish database or consumer readiness.
 
 No production route changes are included. Verify path tables against gateway plus both app NGINX/Vite files when deployments change. Browser UAT tests one configured ingress and does not prove every direct-port path has identical behavior.
 

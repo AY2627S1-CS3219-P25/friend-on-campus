@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-09
+ * Scope: Updated getSuppliers unit tests to verify PostgreSQL $queryRaw SQL construction (LOWER() case-insensitive
+ * ORDER BY with deterministic "id" ASC tie-breaker, parameterized WHERE filters, LIMIT/OFFSET clamping, unpaginated
+ * 100-row cap, totalCount stripping, and out-of-range page COUNT(*) fallback) for issues #110 and #253.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
  * Scope: Sorting and pagination tests now assert on the returned rows (case-insensitive order, stable ties,
  * slicing) because the repository sorts and pages in memory (UAT S8).
@@ -17,8 +23,10 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by Reallyeasy1)
+// AI-generated (edited by yanhwee)
 import { describe, it, before, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import { Prisma } from '../src/generated/prisma';
 
 // A Prisma stand-in that records every call and answers from a script.
 const calls: Array<{ method: string; args: any }> = [];
@@ -28,6 +36,12 @@ function answer(method: string) {
   return queue.length > 0 ? queue.shift() : null;
 }
 const fakePrisma = {
+  async $queryRaw(query: any) {
+    const sql = String(query?.sql ?? '').replace(/\s+/g, ' ').trim();
+    const values = query?.values ?? [];
+    calls.push({ method: '$queryRaw', args: { sql, values } });
+    return answer('$queryRaw') ?? [];
+  },
   supplier: Object.fromEntries(
     ['findMany', 'count', 'findUnique', 'findFirst', 'create', 'update', 'delete'].map((m) => [
       m,
@@ -42,7 +56,7 @@ const fakePrisma = {
 // The mock must be registered before the repository module is loaded, and CJS output has no top-level await.
 let repo: typeof import('../src/suppliers/supplierRepository');
 before(async () => {
-  mock.module('../src/database/client', { namedExports: { prisma: fakePrisma }, defaultExport: fakePrisma });
+  mock.module('../src/database/client', { namedExports: { prisma: fakePrisma, Prisma }, defaultExport: fakePrisma });
   repo = await import('../src/suppliers/supplierRepository.js');
 });
 
@@ -52,126 +66,155 @@ beforeEach(() => {
 });
 
 describe('getSuppliers: filters and search', () => {
-  it('with no filter returns the whole list as one page, sorted by name ascending', async () => {
-    answers.findMany = [[{ id: 'b', name: 'Beta' }, { id: 'a', name: 'Alpha' }]];
+  it('with no filter queries PostgreSQL sorted by LOWER("name") ASC, "id" ASC and strips totalCount', async () => {
+    answers.$queryRaw = [[
+      { id: 'a', name: 'Alpha', totalCount: 2 },
+      { id: 'b', name: 'Beta', totalCount: 2 },
+    ]];
     const result = await repo.getSuppliers();
-    assert.deepEqual(calls[0].args, { where: {} });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].method, '$queryRaw');
+    assert.equal(calls[0].args.sql.includes('WHERE'), false);
+    assert.match(calls[0].args.sql, /ORDER BY LOWER\("name"\) ASC, "id" ASC LIMIT \? OFFSET \?$/);
+    assert.deepEqual(calls[0].args.values, [100, 0]);
     assert.deepEqual(result, {
-      suppliers: [{ id: 'a', name: 'Alpha' }, { id: 'b', name: 'Beta' }], total: 2, page: 1, limit: 2, totalPages: 1,
+      suppliers: [{ id: 'a', name: 'Alpha' }, { id: 'b', name: 'Beta' }],
+      total: 2,
+      page: 1,
+      limit: 2,
+      totalPages: 1,
     });
-    assert.equal(calls.some((c) => c.method === 'count'), false, 'no count query without pagination');
   });
 
-  it('campusZone, category and isActive become AND filters; text filters are case-insensitive', async () => {
-    answers.findMany = [[]];
+  it('campusZone, category and isActive become parameterized AND filters; text filters use LOWER()', async () => {
+    answers.$queryRaw = [[]];
     await repo.getSuppliers({ campusZone: 'com3', category: 'Food', isActive: false });
-    assert.deepEqual(calls[0].args.where, {
-      campusZone: { equals: 'com3', mode: 'insensitive' },
-      category: { equals: 'Food', mode: 'insensitive' },
-      isActive: false,
-    });
+    assert.match(
+      calls[0].args.sql,
+      /WHERE LOWER\("campus_zone"\) = LOWER\(\?\) AND LOWER\("category"\) = LOWER\(\?\) AND "is_active" = \?/,
+    );
+    assert.deepEqual(calls[0].args.values, ['com3', 'Food', false, 100, 0]);
   });
 
-  it('search is a case-insensitive contains over five columns, trimmed', async () => {
-    answers.findMany = [[]];
+  it('search is a case-insensitive ILIKE over five columns, trimmed', async () => {
+    answers.$queryRaw = [[]];
     await repo.getSuppliers({ search: '  Coffee ' });
-    assert.deepEqual(calls[0].args.where.OR, [
-      { name: { contains: 'Coffee', mode: 'insensitive' } },
-      { exactLocation: { contains: 'Coffee', mode: 'insensitive' } },
-      { building: { contains: 'Coffee', mode: 'insensitive' } },
-      { description: { contains: 'Coffee', mode: 'insensitive' } },
-      { supplierCode: { contains: 'Coffee', mode: 'insensitive' } },
-    ]);
+    assert.match(
+      calls[0].args.sql,
+      /WHERE \("name" ILIKE \? OR "exact_location" ILIKE \? OR "building" ILIKE \? OR "description" ILIKE \? OR "supplier_code" ILIKE \?\)/,
+    );
+    assert.deepEqual(calls[0].args.values, ['%Coffee%', '%Coffee%', '%Coffee%', '%Coffee%', '%Coffee%', 100, 0]);
   });
 
   it('a whitespace-only search is ignored', async () => {
-    answers.findMany = [[]];
+    answers.$queryRaw = [[]];
     await repo.getSuppliers({ search: '   ' });
-    assert.equal('OR' in calls[0].args.where, false);
+    assert.equal(calls[0].args.sql.includes('WHERE'), false);
+    assert.deepEqual(calls[0].args.values, [100, 0]);
   });
 
-  it('isActive undefined means no filter, while false is a filter', async () => {
-    answers.findMany = [[], []];
+  it('isActive undefined means no filter, while false and true are filters', async () => {
+    answers.$queryRaw = [[], []];
     await repo.getSuppliers({ isActive: undefined });
     await repo.getSuppliers({ isActive: true });
-    assert.equal('isActive' in calls[0].args.where, false);
-    assert.equal(calls[1].args.where.isActive, true);
+    assert.equal(calls[0].args.sql.includes('"is_active" ='), false);
+    assert.match(calls[1].args.sql, /WHERE "is_active" = \?/);
+    assert.deepEqual(calls[1].args.values, [true, 100, 0]);
   });
 });
 
 describe('getSuppliers: sorting', () => {
-  // Stored order is deliberately unsorted; byte order would put the lower-case name last.
-  const stored = () => [
-    { id: '3', name: 'The Deck', campusZone: 'FASS', category: 'Food', supplierCode: 'SUP-002', createdAt: new Date('2026-09-03') },
-    { id: '1', name: 'he by He Brews', campusZone: 'UTown', category: 'Drinks', supplierCode: 'SUP-004', createdAt: new Date('2026-09-01') },
-    { id: '4', name: 'TOMORO COFFEE', campusZone: 'COM3', category: 'drinks', supplierCode: 'SUP-001', createdAt: new Date('2026-09-04') },
-    { id: '2', name: 'A Hot Hideout', campusZone: 'com3', category: 'Food', supplierCode: 'SUP-003', createdAt: new Date('2026-09-02') },
-  ];
-  const ids = async (filter?: Parameters<typeof repo.getSuppliers>[0]) => {
-    answers.findMany = [stored()];
-    return (await repo.getSuppliers(filter)).suppliers.map((s: any) => s.id).join('');
-  };
-
-  it('orders names without regard to letter case, in both directions', async () => {
-    assert.equal(await ids({ sortBy: 'name' }), '2134');
-    assert.equal(await ids({ sortBy: 'name', sortOrder: 'desc' }), '4312');
+  it('orders text columns with LOWER() and createdAt directly, with deterministic "id" ASC tie-breaker', async () => {
+    const expectedSqlByField: Record<string, string> = {
+      name: 'LOWER("name")',
+      campusZone: 'LOWER("campus_zone")',
+      category: 'LOWER("category")',
+      createdAt: '"created_at"',
+      supplierCode: 'LOWER("supplier_code")',
+    };
+    for (const [field, expr] of Object.entries(expectedSqlByField)) {
+      answers.$queryRaw = [[], []];
+      await repo.getSuppliers({ sortBy: field as any, sortOrder: 'asc' });
+      assert.equal(calls.at(-1)!.args.sql.includes(`ORDER BY ${expr} ASC, "id" ASC`), true, `${field} asc`);
+      await repo.getSuppliers({ sortBy: field as any, sortOrder: 'desc' });
+      assert.equal(calls.at(-1)!.args.sql.includes(`ORDER BY ${expr} DESC, "id" ASC`), true, `${field} desc`);
+    }
   });
 
-  it('accepts the five sortable fields', async () => {
-    assert.equal(await ids({ sortBy: 'supplierCode' }), '4321');
-    assert.equal(await ids({ sortBy: 'createdAt' }), '1234');
-    assert.equal(await ids({ sortBy: 'createdAt', sortOrder: 'desc' }), '4321');
-    // Equal values (ignoring case) keep a fixed order by id, so pages do not shuffle between requests.
-    assert.equal(await ids({ sortBy: 'category' }), '1423');
-    assert.equal(await ids({ sortBy: 'campusZone' }), '2431');
-  });
-
-  it('falls back to name for an unknown sortBy and to asc for anything but desc', async () => {
-    assert.equal(await ids({ sortBy: 'price' as any }), '2134');
-    assert.equal(await ids({ sortBy: 'supplierCode', sortOrder: 'DESC' as any }), '4321');
-    assert.equal(await ids({ sortBy: 'supplierCode', sortOrder: 'desc' }), '1234');
+  it('falls back to LOWER("name") for an unknown sortBy and to ASC for anything but desc', async () => {
+    answers.$queryRaw = [[], [], []];
+    await repo.getSuppliers({ sortBy: 'price' as any });
+    await repo.getSuppliers({ sortBy: 'supplierCode', sortOrder: 'DESC' as any });
+    await repo.getSuppliers({ sortBy: 'supplierCode', sortOrder: 'desc' });
+    assert.equal(calls[0].args.sql.includes('ORDER BY LOWER("name") ASC, "id" ASC'), true);
+    assert.equal(calls[1].args.sql.includes('ORDER BY LOWER("supplier_code") ASC, "id" ASC'), true);
+    assert.equal(calls[2].args.sql.includes('ORDER BY LOWER("supplier_code") DESC, "id" ASC'), true);
   });
 });
 
 describe('getSuppliers: pagination', () => {
-  const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `id-${i}`, name: `S${String(i).padStart(2, '0')}` }));
-  const names = (result: { suppliers: any[] }) => result.suppliers.map((s) => s.name);
+  const rows = (n: number, totalCount = n) =>
+    Array.from({ length: n }, (_, i) => ({ id: `id-${i}`, name: `S${String(i).padStart(2, '0')}`, totalCount }));
 
-  it('page and limit slice the sorted matches, with total and totalPages from the match count', async () => {
-    answers.findMany = [rows(21).reverse()];
+  it('page and limit become LIMIT and OFFSET in SQL, with total and totalPages from COUNT(*) OVER()', async () => {
+    answers.$queryRaw = [rows(5, 21)];
     const result = await repo.getSuppliers({ page: 3, limit: 5 });
-    assert.deepEqual(names(result), ['S10', 'S11', 'S12', 'S13', 'S14']);
-    assert.deepEqual({ ...result, suppliers: undefined }, { suppliers: undefined, total: 21, page: 3, limit: 5, totalPages: 5 });
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0].args.values, [5, 10]);
+    assert.deepEqual(
+      { ...result, suppliers: result.suppliers.length },
+      { suppliers: 5, total: 21, page: 3, limit: 5, totalPages: 5 },
+    );
   });
 
   it('paginates when only one of page or limit is sent, with defaults page 1 and limit 10', async () => {
-    answers.findMany = [rows(21), rows(21)];
+    answers.$queryRaw = [rows(10, 21), rows(7, 21)];
     const second = await repo.getSuppliers({ page: 2 });
-    assert.deepEqual([names(second)[0], second.suppliers.length, second.limit], ['S10', 10, 10]);
+    assert.deepEqual(calls[0].args.values, [10, 10]);
+    assert.deepEqual([second.page, second.limit, second.total], [2, 10, 21]);
     const first = await repo.getSuppliers({ limit: 7 });
-    assert.deepEqual([names(first)[0], first.suppliers.length, first.page], ['S00', 7, 1]);
+    assert.deepEqual(calls[1].args.values, [7, 0]);
+    assert.deepEqual([first.page, first.limit, first.total], [1, 7, 21]);
   });
 
-  it('clamps page to at least 1 and limit to 1..100', async () => {
-    answers.findMany = [rows(120), rows(120)];
+  it('clamps page to at least 1, limit to 1..100, and caps unpaginated queries at 100 rows', async () => {
+    answers.$queryRaw = [rows(100, 120), rows(1, 120), rows(100, 521)];
     const wide = await repo.getSuppliers({ page: 0, limit: 500 });
-    assert.deepEqual([wide.page, wide.limit, wide.suppliers.length], [1, 100, 100]);
+    assert.deepEqual(calls[0].args.values, [100, 0]);
+    assert.deepEqual([wide.page, wide.limit, wide.suppliers.length, wide.totalPages], [1, 100, 100, 2]);
+
     const narrow = await repo.getSuppliers({ page: -3, limit: 0 });
-    assert.deepEqual([narrow.page, narrow.limit, names(narrow)], [1, 1, ['S00']]);
+    assert.deepEqual(calls[1].args.values, [1, 0]);
+    assert.deepEqual([narrow.page, narrow.limit, narrow.suppliers.length], [1, 1, 1]);
+
+    const unpaginatedLarge = await repo.getSuppliers({ isActive: true });
+    assert.deepEqual(calls[2].args.values, [true, 100, 0]);
+    assert.deepEqual(
+      [unpaginatedLarge.page, unpaginatedLarge.limit, unpaginatedLarge.total, unpaginatedLarge.totalPages],
+      [1, 100, 521, 6],
+    );
   });
 
-  it('totalPages rounds up and is 0 for an empty result; a page past the end is empty', async () => {
-    answers.findMany = [rows(11), [], rows(11)];
+  it('totalPages rounds up and is 0 for an empty result; a page past the end falls back to COUNT(*)', async () => {
+    answers.$queryRaw = [rows(5, 11), [], [], [{ totalCount: 11 }]];
     assert.equal((await repo.getSuppliers({ limit: 5 })).totalPages, 3);
     assert.equal((await repo.getSuppliers({ limit: 5 })).totalPages, 0);
-    assert.deepEqual((await repo.getSuppliers({ page: 9, limit: 5 })).suppliers, []);
+    assert.equal(calls.length, 2, 'empty first page needs no fallback count query');
+
+    const pastEnd = await repo.getSuppliers({ page: 9, limit: 5 });
+    assert.equal(calls.length, 4, 'empty page with skip > 0 issues fallback count query');
+    assert.match(calls[3].args.sql, /^SELECT COUNT\(\*\)::int AS "totalCount" FROM "suppliers"$/);
+    assert.deepEqual(pastEnd, { suppliers: [], total: 11, page: 9, limit: 5, totalPages: 3 });
   });
 
-  it('filters are applied by the query, before sorting and paging', async () => {
-    answers.findMany = [[]];
-    await repo.getSuppliers({ category: 'Food', page: 1 });
-    assert.deepEqual(calls.map((c) => c.method), ['findMany']);
-    assert.deepEqual(calls[0].args, { where: { category: { equals: 'Food', mode: 'insensitive' } } });
+  it('applies the same WHERE clause to the fallback count query when a filtered page is past the end', async () => {
+    answers.$queryRaw = [[], [{ totalCount: 4 }]];
+    const res = await repo.getSuppliers({ category: 'Food', page: 2, limit: 5 });
+    assert.equal(calls.length, 2);
+    assert.match(calls[0].args.sql, /WHERE LOWER\("category"\) = LOWER\(\?\)/);
+    assert.match(calls[1].args.sql, /WHERE LOWER\("category"\) = LOWER\(\?\)/);
+    assert.deepEqual(calls[1].args.values, ['Food']);
+    assert.deepEqual(res, { suppliers: [], total: 4, page: 2, limit: 5, totalPages: 1 });
   });
 });
 
