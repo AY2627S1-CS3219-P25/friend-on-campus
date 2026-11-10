@@ -49,6 +49,128 @@ Order Service looks up a supplier synchronously before accepting a new errand an
 
 This guide was rechecked against documentation head `bc0efa4` on 9 November 2026, whose application baseline is `b989758`, in PR #255. It combines API behavior, local operation and the coordinate-upgrade procedure. Use [local development](../../development/local-development.md) for the shared setup.
 
+## Diagrams
+
+Legend: solid `->` is data flow, dashed `-.-.-.-` is control flow.
+
+**Where it sits**
+
+```mermaid
+flowchart LR
+  SA[Student app]
+  AP[Admin portal]
+  GW["Gateway (NGINX)<br/>no token check"]
+  OS["Order Service<br/>supplier.client.ts"]
+  UC["User Service<br/>signs tokens"]
+  CSV[("supplier-seed-data.csv")]
+  subgraph SS["Supplier Service :8002"]
+    direction TB
+    APP["app.ts"] -.->|"control: mount"| RT["supplierRoutes.ts<br/>auth on mutations"]
+    RT -.->|"control: call"| SV["supplierService.ts<br/>validation, duplicate check"]
+    SV -.->|"control: call"| RP["supplierRepository.ts<br/>sort and page in SQL"]
+  end
+  DB[("supplier_db<br/>PostgreSQL")]
+  SEED["seed.ts<br/>run by Compose before listening"]
+
+  SA -->|"data: GET /api/suppliers"| GW
+  AP -->|"data: GET, and mutations with Bearer token"| GW
+  GW -->|"data: proxied request"| APP
+  OS -->|"data: GET list (isActive=true, limit=100) or by id, no token, 4 s timeout"| APP
+  RP -->|"data: Prisma queries and raw SQL"| DB
+  CSV -->|"data: rows"| SEED
+  SEED -->|"data: upsert"| DB
+  UC -.->|"control: public key verifies tokens offline"| RT
+  GW -.->|"control: /api/health/supplier/health, /ready"| APP
+```
+
+**API calls**
+
+```mermaid
+flowchart LR
+  subgraph Public["No token"]
+    G1["GET /api/suppliers"]
+    G2["GET /api/suppliers/:id (id, then supplierCode)"]
+    H["GET /health, GET /ready"]
+  end
+  subgraph Admin["Bearer token + ADMIN"]
+    P1["POST /api/suppliers"]
+    P2["PUT /api/suppliers/:id"]
+    P3["PATCH /api/suppliers/:id/toggle"]
+    P4["DELETE /api/suppliers/:id (?permanent=true removes the row)"]
+  end
+  R["Router"]
+  S["Service"]
+  D[("suppliers")]
+  G1 -->|"data: query"| R
+  G2 -->|"data: id"| R
+  P1 -->|"data: body"| R
+  P2 -->|"data: id + body"| R
+  P3 -->|"data: id"| R
+  P4 -->|"data: id + flag"| R
+  R -.->|"control: public routes pass straight on"| S
+  R -.->|"control: admin routes pass only after authenticate then requireAdmin"| S
+  S -->|"data: repository calls"| D
+  D -->|"data: rows"| S
+```
+
+**Reading (public)**
+
+```mermaid
+sequenceDiagram
+  participant C as Apps / Order Service
+  participant GW as Gateway
+  participant R as Router
+  participant S as Service
+  participant P as Repository
+  participant DB as supplier_db
+  C->>GW: GET /api/suppliers?filters&sortBy&page&limit
+  GW->>R: proxy, no token check
+  R->>S: listSuppliers(options)
+  S->>P: getSuppliers(options)
+  P->>DB: one SQL query: WHERE filters and search, ORDER BY LOWER(col) then id, COUNT(*) OVER(), LIMIT and OFFSET
+  DB-->>P: the requested page of rows plus the total match count
+  Note over P,DB: no page or limit given means LIMIT 100
+  P-->>C: 200 data:{suppliers,total,page,limit,totalPages}
+```
+
+**Mutating (ADMIN)**
+
+```mermaid
+sequenceDiagram
+  participant A as Admin portal
+  participant M as authMiddleware
+  participant AD as requireAdmin
+  participant S as Service
+  participant DB as supplier_db
+  A->>M: POST/PUT/PATCH/DELETE with Bearer token (via gateway)
+  alt no header
+    M-->>A: 401 MISSING_TOKEN
+  else bad signature, issuer, audience
+    M-->>A: 401 INVALID_TOKEN
+  else expired
+    M-->>A: 401 TOKEN_EXPIRED
+  else valid
+    M->>AD: principal in res.locals.auth
+    alt role is not ADMIN
+      AD-->>A: 403 ADMIN_REQUIRED
+    else ADMIN
+      AD->>S: create / update / toggle / delete
+      S->>S: validate (400)
+      S->>DB: duplicate check: case-insensitive name, category, building, floor (an update excludes its own row)
+      alt duplicate
+        S-->>A: 409 with duplicate details
+      else free
+        S->>DB: write under the unique index
+        alt written
+          S-->>A: 201 / 200
+        else unique-index race
+          S-->>A: 409 without details
+        end
+      end
+    end
+  end
+```
+
 ## Follow a directory request
 
 A student searching for a pickup point sends a request such as:

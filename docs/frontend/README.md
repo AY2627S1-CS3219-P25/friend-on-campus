@@ -249,6 +249,147 @@ The Health page combines `/health` and `/ready` into ONLINE, DEGRADED or OFFLINE
 
 In default host-Vite mode, the admin config has no dedicated Chat health proxy. `/api/health/chat/...` therefore falls through to the generic Supplier target and can misleadingly show Chat offline. Test these probes through the gateway, or use `GATEWAY_URL` for the admin Vite process. This limitation does not apply to the gateway's configured Chat health route.
 
+### Admin portal diagrams
+
+Legend: solid `->` is data flow, dashed `-.-.-.-` is control flow.
+
+**Where it sits**
+
+```mermaid
+flowchart LR
+  ADM[Administrator browser]
+  NG["Admin portal NGINX :5174<br/>static files at /admin/"]
+  GW["API gateway :80"]
+  US["User Service :8001"]
+  SS["Supplier Service :8002"]
+  OS["Order Service :8003"]
+  OT["Credit, Notification, Chat<br/>(health probes only)"]
+
+  ADM -->|"data: page and assets"| NG
+  ADM -->|"data: /api/* requests"| NG
+  NG -->|"data: /api proxied"| GW
+  GW -->|"data: /api/auth, /api/users"| US
+  GW -->|"data: /api/suppliers"| SS
+  GW -->|"data: /api/orders"| OS
+  GW -.->|"control: /api/health/key/health, ready"| OT
+  GW -.->|"control: same probes for the three above"| US
+```
+
+**API calls**
+
+```mermaid
+flowchart LR
+  subgraph NoToken["Sent without a token"]
+    A1["POST /api/auth/login"]
+    A2["POST /api/auth/refresh (cookie, 8 s timeout)"]
+    A3["POST /api/auth/logout"]
+    S0["GET /api/suppliers (list cleared on failure)"]
+    H["GET /api/health/key/health and /ready, 4 s timeout"]
+  end
+  subgraph Bearer["authFetch: Bearer token, ADMIN enforced by each service"]
+    U["GET /api/users?limit=100<br/>PATCH /api/users/:id/toggle-status<br/>PATCH /api/users/:id/toggle-role<br/>DELETE /api/users/:id"]
+    S1["POST /api/suppliers<br/>PUT /api/suppliers/:id<br/>PATCH /api/suppliers/:id/toggle<br/>DELETE /api/suppliers/:id (?permanent=true)"]
+    O["GET /api/orders?status=ALL&limit=100<br/>POST /api/orders/:id/admin/cancel, complete, unassign<br/>body: reason, expectedVersion"]
+  end
+  UI["Admin portal pages"]
+  UI -->|"data: credentials"| A1
+  UI -.->|"control: on load and after a 401"| A2
+  UI -->|"data: list request"| S0
+  UI -->|"data: every 15 s on the Health tab"| H
+  UI -->|"data: mutations and lists"| U
+  UI -->|"data: mutations"| S1
+  UI -->|"data: lists and settle actions"| O
+```
+
+**Login, session and authorization**
+
+```mermaid
+sequenceDiagram
+  participant B as Browser (useAdminAuth)
+  participant GW as Gateway
+  participant US as User Service
+  participant SV as Supplier / Order / User Service
+  B->>GW: POST /api/auth/refresh (HttpOnly cookie) on page load
+  alt cookie valid
+    GW->>US: proxy
+    US-->>B: accessToken (kept in memory only)
+    B->>B: decode role from the JWT
+    Note over B: role ADMIN opens the portal, anything else stays on the login page
+  else no session
+    B->>B: show login page
+    B->>GW: POST /api/auth/login (email, password, keepLoggedIn)
+    GW->>US: proxy
+    US-->>B: accessToken, or an error code shown on the page
+    B->>B: role not ADMIN gives FORBIDDEN_ROLE and no session
+  end
+  B->>GW: authFetch: request with Authorization Bearer token
+  GW->>SV: proxy, no token check at the gateway
+  alt token valid and role ADMIN
+    SV-->>B: 200 data
+  else 401
+    SV-->>B: 401
+    B->>GW: POST /api/auth/refresh (once, shared if already running)
+    alt new token
+      B->>GW: retry the request once
+    else refresh fails
+      B->>B: clear session and domain state, back to login
+    end
+  else 403
+    SV-->>B: 403 ADMIN_REQUIRED
+  end
+```
+
+**Settling a delivery dispute**
+
+```mermaid
+sequenceDiagram
+  participant A as Admin (Orders page)
+  participant M as DisputeModal
+  participant GW as Gateway
+  participant OS as Order Service
+  A->>A: Dispute filter chip lists orders with dispute = true
+  A->>M: View details on a DELIVERED, disputed order
+  M-->>A: read-only requester text and courier text (empty if not written)
+  alt Refund (side with requester)
+    M->>GW: POST /api/orders/:id/admin/cancel (reason, expectedVersion)
+    GW->>OS: proxy
+    OS-->>M: order CANCELLED, dispute cleared, order.cancelled event, credits returned
+  else Complete (pay courier)
+    M->>GW: POST /api/orders/:id/admin/complete (reason, expectedVersion)
+    GW->>OS: proxy
+    OS-->>M: order COMPLETED, dispute cleared, order.completed event, credits released
+  end
+```
+
+**Supplier coordinates and the map**
+
+```mermaid
+flowchart LR
+  AD["Admin: Add / Edit Supplier<br/>latitude, longitude"]
+  SS["Supplier Service<br/>validate and store"]
+  DB[("supplier_db")]
+  SA["Student app<br/>GET /api/suppliers"]
+  PM["Pickup map<br/>pins grouped by exact coordinates"]
+  DP["Drop-off picker<br/>NUS building list or clicked point"]
+  EST["Reward suggestion in the browser<br/>straight-line distance, pickup to drop-off"]
+  OS["Order Service<br/>stores dropoffLatitude, dropoffLongitude, estimatedRewardCredits"]
+  RM["Errand route map<br/>pickup and drop-off pins"]
+  OSM["OpenStreetMap tile server<br/>tile.openstreetmap.org"]
+
+  AD -->|"data: POST / PUT with coordinates"| SS
+  SS -->|"data: row"| DB
+  DB -->|"data: supplier list with coordinates"| SA
+  SA -->|"data: pickup coordinates"| PM
+  SA -->|"data: pickup coordinates"| EST
+  DP -->|"data: drop-off point"| EST
+  EST -->|"data: suggested reward and drop-off point"| OS
+  OS -->|"data: dropoff coordinates in the order"| RM
+  PM -.->|"control: browser requests tiles z/x/y"| OSM
+  DP -.->|"control: browser requests tiles z/x/y"| OSM
+  RM -.->|"control: browser requests tiles z/x/y"| OSM
+  OSM -->|"data: PNG map tiles"| PM
+```
+
 ## Tests and a useful manual check
 
 These commands run against the repository; they do not require a live browser session:

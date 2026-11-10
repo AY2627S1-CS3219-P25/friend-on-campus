@@ -91,6 +91,49 @@ New to Friend on Campus? Read [how the system works](architecture/system-overvie
 
 Commands with specialist operational detail stay beside their implementation: [ECS rollout](../infra/terraform/ecs/README.md), [k6 harness](../tests/k6/README.md), [auth package examples](../packages/auth/README.md) and [Postman collection](../tests/postman/order_credit_README.md). These guides link to them rather than maintaining competing runbooks.
 
+## Tech stack
+
+Everything is TypeScript on Node.js, tested with *node --test* and linted with *ESLint*. Legend: *italic text* is a library or framework, solid `->` is data flow, dashed `-.-.-.-` is control flow.
+
+```mermaid
+flowchart LR
+  subgraph FE["Frontend: <i>React</i>, <i>Vite</i>, <i>Tailwind</i>"]
+    SA["Student app<br/><i>Leaflet</i>"]
+    AP["Admin portal"]
+  end
+  OSM["OpenStreetMap tiles"]
+  GW["<i>NGINX</i>"]
+  subgraph SV["Services: <i>Express</i>, <i>Prisma</i>"]
+    US["User"]
+    SU["Supplier"]
+    OR["Order"]
+    CR["Credit"]
+    NO["Notification<br/><i>ws</i>"]
+    CH["Chat<br/><i>ws</i>"]
+  end
+  AUTH["<i>@campus-errand/auth</i>"]
+  DTO["<i>@campus-errand/common-dtos</i>"]
+  PG[("<i>PostgreSQL 16</i>")]
+  DBZ["<i>Debezium</i>"]
+  MQ[("<i>RabbitMQ 3.13</i><br/><i>rabbitmq-client</i>")]
+  LLM["SoCLaaS<br/><i>@campus-errand/llm</i>"]
+
+  SA -->|"data"| GW
+  AP -->|"data"| GW
+  SA -->|"data: map tiles"| OSM
+  GW -->|"data"| US & SU & OR & CR & NO & CH
+  OR -->|"data"| SU
+  US & SU & OR & CR & NO & CH -->|"data via <i>Prisma</i>"| PG
+  AUTH -.->|"control"| SV
+  DTO -.->|"control"| SV
+  DTO -.->|"control"| FE
+  PG -.->|"control: outbox"| DBZ
+  DBZ -->|"data"| MQ
+  NO & CH -->|"data"| MQ
+  MQ -->|"data"| CR & OR & NO & CH
+  OR & CH -->|"data"| LLM
+```
+
 ## Known limits and design context
 
 The service guides describe implemented behavior, including its limits. Read their failure sections before promising recovery or access guarantees:
